@@ -22,7 +22,10 @@ import io.netty.handler.codec.mqtt.MqttMessageBuilders;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -76,16 +79,20 @@ public class MemoryRetainedRepositoryTest {
             .payload(Unpooled.buffer(0))
             .build());
 
-        List<RetainedMessage> retainedMessages = repository.retainedOnTopic("foo/bar/#");
+        Map<String, RetainedMessage> retainedMessagesMap = repository.retainedOnTopic("foo/bar/#")
+            .stream()
+            .collect(Collectors.toMap(retainedMessage -> retainedMessage.getTopic().toString(), retainedMessage -> retainedMessage, (a, b) -> a, LinkedHashMap::new));
 
-        assertEquals(1, retainedMessages.size());
-        assertEquals("foo/bar/baz", retainedMessages.get(0).getTopic().toString());
+        assertEquals(1, retainedMessagesMap.size());
+        assertTrue(retainedMessagesMap.containsKey("foo/bar/baz"));
 
-        retainedMessages = repository.retainedOnTopic("foo/#");
+        retainedMessagesMap = repository.retainedOnTopic("foo/#")
+            .stream()
+            .collect(Collectors.toMap(retainedMessage -> retainedMessage.getTopic().toString(), retainedMessage -> retainedMessage, (a, b) -> a, LinkedHashMap::new));
 
-        assertEquals(2, retainedMessages.size());
-        assertEquals("foo/bar/baz", retainedMessages.get(0).getTopic().toString());
-        assertEquals("foo/baz/bar", retainedMessages.get(1).getTopic().toString());
+        assertEquals(2, retainedMessagesMap.size());
+        assertTrue(retainedMessagesMap.containsKey("foo/bar/baz"));
+        assertTrue(retainedMessagesMap.containsKey("foo/baz/bar"));
     }
 
     @Test
